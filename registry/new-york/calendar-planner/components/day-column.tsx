@@ -16,6 +16,7 @@ import { getTimeSlotMetrics } from "../lib/time-slot-metrics"
 import { TimeGridEvent } from "./event-cell"
 import { TimeSlotGroup } from "./time-slots"
 import * as dates from "../lib/dates"
+import { useDnD } from "../hooks/use-dnd"
 
 export interface DayColumnProps<TEvent extends CalendarEvent = CalendarEvent> {
   date: Date
@@ -157,15 +158,54 @@ export function DayColumn<TEvent extends CalendarEvent = CalendarEvent>({
 
   const { className: dayClassName, style: dayStyle } = getters.dayProp?.(date) ?? {}
 
+  // ── DnD: detect when a dragged event hovers over this column ──
+  const { dragState, updatePreview, endDrag } = useDnD<TEvent>()
+  const isDragTarget = dragState != null
+
+  const handleColumnPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragState || dragState.action !== "move") return
+      // Only respond if this column doesn't already own the event (cross-column drag)
+      const bounds = columnRef.current?.getBoundingClientRect()
+      if (!bounds) return
+      const pct = Math.max(0, Math.min(1, (e.clientY - bounds.top) / bounds.height))
+      const totalMinutes = dates.diff(min, max, "minutes")
+      const minuteOffset = Math.round((pct * totalMinutes) / step) * step
+
+      // Build new start/end on this column's date
+      const dayStart = new Date(date)
+      dayStart.setHours(min.getHours(), min.getMinutes(), 0, 0)
+      const newStart = dates.add(dayStart, minuteOffset, "minutes")
+      const evtStart = accessors.start(dragState.event as unknown as TEvent)
+      const evtEnd = accessors.end(dragState.event as unknown as TEvent)
+      const duration = evtEnd.getTime() - evtStart.getTime()
+      const newEnd = new Date(newStart.getTime() + duration)
+
+      updatePreview(newStart, newEnd, resource)
+    },
+    [dragState, min, max, step, date, resource, updatePreview, accessors],
+  )
+
+  const handleColumnPointerUp = useCallback(
+    (_e: React.PointerEvent) => {
+      if (!dragState) return
+      endDrag()
+    },
+    [dragState, endDrag],
+  )
+
   return (
     <div
       ref={columnRef}
       className={cn(
         "relative flex-1 border-l border-border/50 first:border-l-0",
+        isDragTarget && "bg-primary/5",
         dayClassName,
       )}
       style={dayStyle}
       onClick={handleSlotClick}
+      onPointerMove={handleColumnPointerMove}
+      onPointerUp={handleColumnPointerUp}
     >
       {/* Time slot background grid */}
       {groups.map((group, idx) => (
@@ -215,6 +255,11 @@ export function DayColumn<TEvent extends CalendarEvent = CalendarEvent>({
             localizer={localizer}
             components={components}
             rtl={rtl}
+            columnDate={date}
+            columnMin={min}
+            columnMax={max}
+            step={step}
+            resource={resource}
             onSelect={onSelect}
             onDoubleClick={onDoubleClick}
             onKeyPress={onKeyPress}

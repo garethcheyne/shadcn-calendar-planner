@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRef, useEffect, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import type { CalendarEvent, DateLocalizer, Getters } from "../types"
+import { useDnD } from "../hooks/use-dnd"
 
 export interface BackgroundCellsProps<TEvent extends CalendarEvent = CalendarEvent> {
   range: Date[]
@@ -119,6 +120,38 @@ export function BackgroundCells<TEvent extends CalendarEvent = CalendarEvent>({
     return idx >= start && idx <= end
   }
 
+  // ── DnD: month view drop target ──
+  const { dragState, updatePreview, endDrag } = useDnD()
+  const [dropTarget, setDropTarget] = React.useState<number | null>(null)
+
+  const handleDragEnterCell = useCallback(
+    (idx: number) => {
+      if (!dragState) return
+      setDropTarget(idx)
+      const slot = range[idx]
+      const event = dragState.event
+      const evtStart = (event as any).start as Date | undefined
+      const evtEnd = (event as any).end as Date | undefined
+      if (!evtStart || !evtEnd) return
+      const duration = evtEnd.getTime() - evtStart.getTime()
+      // Preserve time-of-day, move to new date
+      const newStart = new Date(slot)
+      newStart.setHours(evtStart.getHours(), evtStart.getMinutes(), evtStart.getSeconds(), 0)
+      const newEnd = new Date(newStart.getTime() + duration)
+      updatePreview(newStart, newEnd, resourceId)
+    },
+    [dragState, range, updatePreview, resourceId],
+  )
+
+  const handleDragDropCell = useCallback(
+    (_idx: number) => {
+      if (!dragState) return
+      endDrag()
+      setDropTarget(null)
+    },
+    [dragState, endDrag],
+  )
+
   return (
     <div ref={containerRef} className="flex flex-row absolute inset-0">
       {range.map((slot, idx) => {
@@ -135,6 +168,7 @@ export function BackgroundCells<TEvent extends CalendarEvent = CalendarEvent>({
               isToday && "bg-calendar-today",
               isOffRange && "bg-calendar-off-range",
               isInSelection(idx) && "bg-calendar-selected/30",
+              dragState && dropTarget === idx && "bg-primary/10 ring-1 ring-primary/30 ring-inset",
               selectable && "cursor-cell",
               userClassName,
             )}
@@ -142,7 +176,11 @@ export function BackgroundCells<TEvent extends CalendarEvent = CalendarEvent>({
             onClick={() => handleCellClick(idx)}
             onDoubleClick={() => handleCellDoubleClick(idx)}
             onMouseDown={() => handleMouseDown(idx)}
-            onMouseEnter={() => handleMouseEnter(idx)}
+            onMouseEnter={() => {
+              handleMouseEnter(idx)
+              handleDragEnterCell(idx)
+            }}
+            onMouseUp={() => handleDragDropCell(idx)}
           />
         )
       })}

@@ -17,8 +17,10 @@ import { navigate, views } from "./constants"
 import { wrapAccessor, mergeMessages } from "./helpers"
 import { useControllableState } from "./hooks/use-controllable-state"
 import { CalendarProvider } from "./calendar-context"
+import { DnDProvider } from "./hooks/use-dnd"
 import { Toolbar } from "./components/toolbar"
 import { Header, DateHeader, ResourceHeader } from "./components/headers"
+import { EventDetailSheet } from "./components/event-detail-sheet"
 import { NoopWrapper } from "./helpers"
 
 // Views
@@ -115,6 +117,19 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
   canZoomIn,
   canZoomOut,
 
+  // Drag & Drop
+  draggable = false,
+  onEventDrop,
+  onEventResize,
+  onDragStart,
+  onDragEnd,
+
+  // Event Detail Sheet
+  onEventSave,
+  onEventDelete,
+  eventDetailContent,
+  eventDetailSide = "right",
+
   // Component overrides
   components: componentsProp = {} as Partial<CalendarComponents<TEvent>>,
 
@@ -135,6 +150,10 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
   ...elementProps
 }: CalendarProps<TEvent>) {
   // Controllable state for date and view
+  // ── Event detail sheet state ──
+  const [sheetEvent, setSheetEvent] = React.useState<TEvent | null>(null)
+  const sheetOpen = sheetEvent !== null
+
   const [currentDate, setCurrentDate] = useControllableState<Date>(
     dateProp,
     defaultDate || getNow(),
@@ -189,6 +208,7 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
       day: componentsProp.day,
       month: componentsProp.month,
       agenda: componentsProp.agenda,
+      eventDetailSheet: componentsProp.eventDetailSheet,
     }),
     [componentsProp],
   )
@@ -254,6 +274,35 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
     [setCurrentView, onView],
   )
 
+  // Double-click handler (open event detail sheet)
+  const handleDoubleClickEvent = useCallback(
+    (event: TEvent, e: React.SyntheticEvent) => {
+      // Open the detail sheet
+      setSheetEvent(event)
+      // Also fire the user's callback if provided
+      onDoubleClickEvent?.(event, e)
+    },
+    [onDoubleClickEvent],
+  )
+
+  // Sheet save handler
+  const handleSheetSave = useCallback(
+    (updatedEvent: TEvent) => {
+      onEventSave?.(updatedEvent)
+      setSheetEvent(null)
+    },
+    [onEventSave],
+  )
+
+  // Sheet delete handler
+  const handleSheetDelete = useCallback(
+    (event: TEvent) => {
+      onEventDelete?.(event)
+      setSheetEvent(null)
+    },
+    [onEventDelete],
+  )
+
   // Drill down handler
   const handleDrillDown = useCallback(
     (date: Date, view?: string) => {
@@ -307,6 +356,13 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
   }, [resources, resourceIdAccessor, resourceTitleAccessor])
 
   return (
+    <DnDProvider
+      enabled={draggable}
+      onEventDrop={onEventDrop}
+      onEventResize={onEventResize}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+    >
     <CalendarProvider
       value={{ localizer, accessors, getters, components: calendarComponents, rtl }}
     >
@@ -367,7 +423,7 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
             dayLayoutAlgorithm={dayLayoutAlgorithm}
             onSelectSlot={onSelectSlot}
             onSelect={onSelectEvent}
-            onDoubleClick={onDoubleClickEvent}
+            onDoubleClick={handleDoubleClickEvent}
             onKeyPress={onKeyPressEvent}
             onShowMore={onShowMore}
             onDrillDown={handleDrillDown}
@@ -377,6 +433,33 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
         </div>
       </div>
     </CalendarProvider>
+
+    {/* ── Event Detail Sheet ── */}
+    {sheetEvent && (() => {
+      const SheetComp = calendarComponents.eventDetailSheet ?? EventDetailSheet
+      const sheetEventStart = accessors.start(sheetEvent)
+      const sheetEventEnd = accessors.end(sheetEvent)
+      const sheetEventTitle = accessors.title(sheetEvent)
+      const sheetEventAllDay = accessors.allDay(sheetEvent)
+      return (
+        <SheetComp
+          event={sheetEvent}
+          open={sheetOpen}
+          onOpenChange={(open: boolean) => { if (!open) setSheetEvent(null) }}
+          title={sheetEventTitle}
+          start={sheetEventStart}
+          end={sheetEventEnd}
+          isAllDay={sheetEventAllDay}
+          localizer={localizer}
+          onSave={onEventSave ? handleSheetSave : undefined}
+          onDelete={onEventDelete ? handleSheetDelete : undefined}
+          side={eventDetailSide}
+        >
+          {eventDetailContent?.(sheetEvent)}
+        </SheetComp>
+      )
+    })()}
+    </DnDProvider>
   )
 }
 

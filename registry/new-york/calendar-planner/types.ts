@@ -127,6 +127,8 @@ export interface CalendarComponents<TEvent = CalendarEvent> {
   }
   resourceHeader?: React.ComponentType<ResourceHeaderProps>
   header?: React.ComponentType<{ date: Date; label: string; localizer: DateLocalizer }>
+  /** Custom event detail sheet (opened on double-click). Receives the event and open/close state. */
+  eventDetailSheet?: React.ComponentType<EventDetailSheetProps<TEvent>>
 }
 
 // ─── Sub-component Props ──────────────────────────────────────────────
@@ -139,6 +141,34 @@ export interface EventComponentProps<TEvent = CalendarEvent> {
   slotEnd?: Date
   continuesPrior?: boolean
   continuesAfter?: boolean
+}
+
+// ─── Event Detail Sheet Props ─────────────────────────────────────────
+export interface EventDetailSheetProps<TEvent = CalendarEvent> {
+  /** The event to display/edit */
+  event: TEvent
+  /** Whether the sheet is open */
+  open: boolean
+  /** Called when the sheet should close */
+  onOpenChange: (open: boolean) => void
+  /** Event title (resolved from accessor) */
+  title: string
+  /** Event start date */
+  start: Date
+  /** Event end date */
+  end: Date
+  /** Whether the event is all-day */
+  isAllDay: boolean
+  /** The localizer for formatting dates/times */
+  localizer: DateLocalizer
+  /** Called when the user saves edits to the event */
+  onSave?: (updatedEvent: TEvent) => void
+  /** Called when the user deletes the event */
+  onDelete?: (event: TEvent) => void
+  /** Side the sheet slides in from */
+  side?: "top" | "right" | "bottom" | "left"
+  /** Additional custom content rendered inside the sheet body */
+  children?: ReactNode
 }
 
 export interface EventWrapperProps<TEvent = CalendarEvent> {
@@ -329,7 +359,7 @@ export interface DateSlotMetrics<TEvent = CalendarEvent> {
 }
 
 // ─── Main Calendar Props ──────────────────────────────────────────────
-export interface CalendarProps<TEvent extends CalendarEvent = CalendarEvent> extends Omit<HTMLAttributes<HTMLDivElement>, "onSelect"> {
+export interface CalendarProps<TEvent extends CalendarEvent = CalendarEvent> extends Omit<HTMLAttributes<HTMLDivElement>, "onSelect" | "onDragEnd" | "onDragStart"> {
   /** Required: the localizer (e.g. dateFnsLocalizer) */
   localizer: DateLocalizer
 
@@ -515,6 +545,55 @@ export interface CalendarProps<TEvent extends CalendarEvent = CalendarEvent> ext
 
   /** Whether further zoom-out is available */
   canZoomOut?: boolean
+
+  // ── Drag & Drop ──────────────────────────────────────────────────
+
+  /** Enable drag-and-drop (move & resize) */
+  draggableAccessor?: Accessor<TEvent, boolean>
+
+  /** Enable resize for an event (drag bottom handle) */
+  resizableAccessor?: Accessor<TEvent, boolean>
+
+  /** Whether DnD is enabled globally (default: false). Set true to allow move/resize. */
+  draggable?: boolean
+
+  /** Called when an event is moved by dragging */
+  onEventDrop?: (args: EventInteractionArgs<TEvent>) => void
+
+  /** Called when an event is resized by dragging its bottom edge */
+  onEventResize?: (args: EventInteractionArgs<TEvent>) => void
+
+  /** Prop getter for the drag-preview appearance */
+  dragFromOutsideItem?: () => TEvent | null
+
+  /** Called while dragging (for realtime preview) */
+  onDragStart?: (args: { event: TEvent; action: "move" | "resize"; direction?: "UP" | "DOWN" }) => void
+
+  /** Called when a drag operation is over (completed or cancelled) */
+  onDragEnd?: (args: { event: TEvent; action: "move" | "resize" }) => void
+
+  // ── Event Detail Sheet ────────────────────────────────────────────
+
+  /** Called when the user saves an event from the detail sheet */
+  onEventSave?: (updatedEvent: TEvent) => void
+
+  /** Called when the user deletes an event from the detail sheet */
+  onEventDelete?: (event: TEvent) => void
+
+  /** Additional content rendered inside the default event detail sheet */
+  eventDetailContent?: (event: TEvent) => ReactNode
+
+  /** Side the sheet slides in from (default: "right") */
+  eventDetailSide?: "top" | "right" | "bottom" | "left"
+}
+
+// ─── Event Interaction (DnD callback args) ────────────────────────────
+export interface EventInteractionArgs<TEvent = CalendarEvent> {
+  event: TEvent
+  start: Date
+  end: Date
+  resourceId?: string | number
+  isAllDay?: boolean
 }
 
 // ─── View Component Static Interface ──────────────────────────────────

@@ -6,7 +6,7 @@
 
 <p align="center">
   A full-featured calendar component built with <strong>shadcn/ui</strong>, <strong>Radix UI</strong>, <strong>Tailwind CSS</strong>, and <strong>date-fns</strong>.<br />
-  Month · Week · Work Week · Day · Agenda · Resource Groups · Zoom · Popovers · Dark Mode
+  Month · Week · Work Week · Day · Agenda · Resource Groups · Zoom · Popovers · Drag &amp; Drop · Event Detail Sheet · Dark Mode
 </p>
 
 <p align="center">
@@ -40,6 +40,8 @@
 - **Resource groups** — split columns by room, person, or any resource
 - **Zoom in/out** — 7 time-slot levels from 5-minute to 2-hour granularity
 - **Event popovers** — Radix Popover with fully customizable content
+- **Drag & drop** — move events across days/times and resize by dragging the bottom edge
+- **Event detail sheet** — double-click any event to view/edit details in a slide-out panel
 - **Drag & select** — click or drag to create events
 - **Custom event rendering** — override any sub-component via `components` prop
 - **Layout algorithms** — `overlap` (default) and `no-overlap` for dense layouts
@@ -194,6 +196,39 @@ export default function MyCalendar() {
 | `onZoomOut` | `() => void` | Callback to increase step (coarser slots) |
 | `canZoomIn` | `boolean` | Whether zoom-in button is enabled |
 | `canZoomOut` | `boolean` | Whether zoom-out button is enabled |
+
+### Drag & Drop Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `draggable` | `boolean` | `false` | Enable drag-and-drop globally (move & resize) |
+| `draggableAccessor` | `keyof TEvent \| (e) => boolean` | — | Per-event draggable flag |
+| `resizableAccessor` | `keyof TEvent \| (e) => boolean` | — | Per-event resizable flag |
+| `onEventDrop` | `(args: EventInteractionArgs) => void` | — | Called when an event is moved by dragging |
+| `onEventResize` | `(args: EventInteractionArgs) => void` | — | Called when an event is resized (bottom edge drag) |
+| `onDragStart` | `(args) => void` | — | Called when a drag operation begins |
+| `onDragEnd` | `(args) => void` | — | Called when a drag operation ends (completed or cancelled) |
+
+#### `EventInteractionArgs<TEvent>`
+
+```ts
+{
+  event: TEvent      // The event that was moved/resized
+  start: Date        // New start date
+  end: Date          // New end date
+  resourceId?: string | number  // Target resource (if applicable)
+  isAllDay?: boolean // Whether dropped into an all-day slot
+}
+```
+
+### Event Detail Sheet Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `onEventSave` | `(updatedEvent: TEvent) => void` | — | Called when the user saves edits in the sheet |
+| `onEventDelete` | `(event: TEvent) => void` | — | Called when the user deletes from the sheet |
+| `eventDetailContent` | `(event: TEvent) => ReactNode` | — | Custom content rendered inside the sheet body |
+| `eventDetailSide` | `"top" \| "right" \| "bottom" \| "left"` | `"right"` | Side the sheet slides in from |
 
 ### Style Getters
 
@@ -411,6 +446,183 @@ function EventWithPopover({ event, title }: EventComponentProps<MyEvent>) {
 
 ---
 
+## Drag & Drop
+
+Enable drag-and-drop to let users **move** events across days/times and **resize** them by dragging the bottom edge. DnD is opt-in — set `draggable` to `true` and provide callback handlers.
+
+No external DnD library is required; it uses native pointer events under the hood.
+
+### Basic Setup
+
+```tsx
+"use client"
+
+import { useState } from "react"
+import { Calendar } from "@/registry/new-york/calendar-planner"
+import type { EventInteractionArgs } from "@/registry/new-york/calendar-planner"
+
+interface MyEvent {
+  title: string
+  start: Date
+  end: Date
+  resourceId?: number
+}
+
+export default function DraggableCalendar() {
+  const [events, setEvents] = useState<MyEvent[]>(initialEvents)
+
+  const handleEventDrop = ({ event, start, end, resourceId }: EventInteractionArgs<MyEvent>) => {
+    setEvents((prev) =>
+      prev.map((ev) =>
+        ev === event ? { ...ev, start, end, ...(resourceId != null && { resourceId }) } : ev,
+      ),
+    )
+  }
+
+  const handleEventResize = ({ event, start, end }: EventInteractionArgs<MyEvent>) => {
+    setEvents((prev) =>
+      prev.map((ev) => (ev === event ? { ...ev, start, end } : ev)),
+    )
+  }
+
+  return (
+    <Calendar<MyEvent>
+      events={events}
+      localizer={localizer}
+      draggable
+      onEventDrop={handleEventDrop}
+      onEventResize={handleEventResize}
+    />
+  )
+}
+```
+
+### How It Works
+
+| Action | Gesture | Views |
+|--------|---------|-------|
+| **Move** | Click & drag an event to a new slot | Week, Day, Month |
+| **Resize** | Drag the bottom edge of an event up or down | Week, Day |
+| **Cancel** | Press `Escape` during drag | All |
+
+- In **time-grid** views (Week/Day), events can be moved to a different time or different day column. A translucent preview shows the new position while dragging.
+- In **month** view, events can be dragged to a different date cell.
+- Cross-column drag is supported in resource views.
+
+### Per-Event Control
+
+Use `draggableAccessor` and `resizableAccessor` to control which events can be moved or resized:
+
+```tsx
+<Calendar
+  draggable
+  draggableAccessor={(event) => event.category !== "locked"}
+  resizableAccessor={(event) => !event.allDay}
+  onEventDrop={handleEventDrop}
+  onEventResize={handleEventResize}
+/>
+```
+
+### Lifecycle Callbacks
+
+```tsx
+<Calendar
+  draggable
+  onDragStart={({ event, action }) => {
+    console.log(`Started ${action}ing "${event.title}"`)
+  }}
+  onDragEnd={({ event, action }) => {
+    console.log(`Finished ${action}ing "${event.title}"`)
+  }}
+  onEventDrop={handleEventDrop}
+  onEventResize={handleEventResize}
+/>
+```
+
+---
+
+## Event Detail Sheet
+
+Double-click any event to open a slide-out **Sheet** panel powered by [shadcn/ui Sheet](https://ui.shadcn.com/docs/components/sheet) (Radix Dialog). The sheet displays event details and supports inline editing, deletion, and custom content injection.
+
+### Basic Setup
+
+```tsx
+<Calendar
+  events={events}
+  localizer={localizer}
+  onEventSave={(updatedEvent) => {
+    setEvents((prev) =>
+      prev.map((ev) => (ev === updatedEvent ? updatedEvent : ev)),
+    )
+  }}
+  onEventDelete={(event) => {
+    setEvents((prev) => prev.filter((ev) => ev !== event))
+  }}
+/>
+```
+
+When `onEventSave` is provided, the sheet shows an **Edit** button that switches to an inline editing mode (title, date, time, description, all-day toggle). When `onEventDelete` is provided, a **Delete** button appears.
+
+### Custom Content
+
+Inject additional content into the sheet body using `eventDetailContent`:
+
+```tsx
+<Calendar
+  onEventSave={handleSave}
+  onEventDelete={handleDelete}
+  eventDetailContent={(event) => (
+    <div className="space-y-2 text-sm">
+      {event.location && (
+        <p className="text-muted-foreground">📍 {event.location}</p>
+      )}
+      {event.attendees?.length > 0 && (
+        <p className="text-muted-foreground">
+          👥 {event.attendees.join(", ")}
+        </p>
+      )}
+    </div>
+  )}
+/>
+```
+
+### Sheet Side
+
+Control which edge the sheet slides in from:
+
+```tsx
+<Calendar
+  eventDetailSide="left"    // "top" | "right" (default) | "bottom" | "left"
+  onEventSave={handleSave}
+/>
+```
+
+### Fully Custom Sheet
+
+Replace the entire sheet with your own component via `components.eventDetailSheet`:
+
+```tsx
+import type { EventDetailSheetProps } from "@/registry/new-york/calendar-planner"
+
+function MyCustomSheet({ event, open, onOpenChange, title, start, end }: EventDetailSheetProps<MyEvent>) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* Your custom UI */}
+    </Dialog>
+  )
+}
+
+<Calendar
+  components={{ eventDetailSheet: MyCustomSheet }}
+  onEventSave={handleSave}
+/>
+```
+
+The custom component receives all props from `EventDetailSheetProps<TEvent>` including the event, open state, localizer, and save/delete callbacks.
+
+---
+
 ## Custom Event Styling
 
 Color-code events using `eventPropGetter`:
@@ -457,6 +669,9 @@ Override any sub-component via the `components` prop:
     dateCellWrapper: MyDateCellWrapper,
     timeSlotWrapper: MyTimeSlotWrapper,
 
+    // Event detail sheet (opened on double-click)
+    eventDetailSheet: MyCustomSheet,
+
     // View-specific overrides
     month: {
       header: MyMonthHeader,
@@ -489,6 +704,7 @@ Override any sub-component via the `components` prop:
 | `header` | `{ date, label, localizer }` |
 | `resourceHeader` | `{ label, index, resource }` |
 | `eventWrapper` | `{ event, children, continuesPrior, continuesAfter, isAllDay, selected, label, onSelect, onDoubleClick }` |
+| `eventDetailSheet` | `{ event, open, onOpenChange, title, start, end, isAllDay, localizer, onSave, onDelete, side, children }` |
 
 ---
 
@@ -600,6 +816,8 @@ import type {
   EventPropGetter,      // Event style getter type
   SlotPropGetter,       // Slot style getter type
   DayPropGetter,        // Day style getter type
+  EventInteractionArgs,  // DnD callback arguments
+  EventDetailSheetProps, // Event detail sheet props
 } from "@/registry/new-york/calendar-planner"
 ```
 
@@ -647,12 +865,16 @@ export { MonthView, WeekView, DayView, WorkWeekView, AgendaView }
 // Components (for custom compositions)
 export { Toolbar }
 export { EventCell, TimeGridEvent }
+export { EventDetailSheet }                // Event detail sheet
 export { EventPopup }
 export { Header, DateHeader, ResourceHeader }
 export { TimeGrid, TimeGridHeader, DayColumn }
 export { DateContentRow, BackgroundCells }
 export { EventRow, EventEndingRow }
 export { TimeSlotGroup, TimeGutter }
+
+// Drag & Drop
+export { DnDProvider, useDnD }             // DnD context & hook
 
 // Localizer
 export { DateLocalizer, mergeWithDefaults }
@@ -685,7 +907,8 @@ registry/new-york/calendar-planner/
 │
 ├── hooks/
 │   ├── use-controllable-state.ts  # Controlled/uncontrolled state hook
-│   └── use-click-outside.ts       # Click-outside detection hook
+│   ├── use-click-outside.ts       # Click-outside detection hook
+│   └── use-dnd.ts                 # Drag & drop context + hook
 │
 ├── lib/
 │   ├── dates.ts                 # Date math utilities
@@ -701,7 +924,8 @@ registry/new-york/calendar-planner/
 │
 ├── components/
 │   ├── toolbar.tsx              # Navigation + view switcher + zoom
-│   ├── event-cell.tsx           # Event rendering (month & time grid)
+│   ├── event-cell.tsx           # Event rendering (month & time grid) + DnD
+│   ├── event-detail-sheet.tsx   # Slide-out event detail panel
 │   ├── event-popup.tsx          # "Show more" popup overlay
 │   ├── event-row.tsx            # Month event rows
 │   ├── headers.tsx              # Column/date/resource headers
@@ -730,8 +954,8 @@ This component is distributed as a [shadcn/ui registry](https://ui.shadcn.com/do
 
 The registry definition is at [`registry.json`](registry.json) and includes:
 
-- Component files (34 files)
-- Required npm dependencies: `date-fns`, `@radix-ui/react-popover`, `@radix-ui/react-toggle-group`, `lucide-react`
+- Component files (36 files)
+- Required npm dependencies: `date-fns`, `@radix-ui/react-popover`, `@radix-ui/react-toggle-group`, `@radix-ui/react-dialog`, `lucide-react`
 - Tailwind theme extensions for calendar tokens
 - Light and dark CSS variable definitions
 
@@ -771,7 +995,7 @@ node scripts/screenshots.mjs    # requires dev server on port 3099
 | TypeScript | 5.9 | Type system |
 | Tailwind CSS | v4 | Styling |
 | date-fns | v4 | Date handling |
-| Radix UI | Latest | Popover, ToggleGroup, Tabs, Tooltip, ScrollArea |
+| Radix UI | Latest | Popover, ToggleGroup, Tabs, Tooltip, ScrollArea, Dialog (Sheet) |
 | Lucide React | Latest | Icons (ChevronLeft/Right, ZoomIn/Out) |
 
 ---

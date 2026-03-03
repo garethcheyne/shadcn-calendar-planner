@@ -13,6 +13,7 @@ import type {
   CalendarEvent,
   EventComponentProps,
   Resource,
+  EventInteractionArgs,
 } from "@/registry/new-york/calendar-planner/types"
 import { cn } from "@/lib/utils"
 
@@ -372,6 +373,7 @@ export default function DemoPage() {
   const [selectedEvent, setSelectedEvent] = useState<MyEvent | null>(null)
   const [step, setStep] = useState(30)
   const [activeTab, setActiveTab] = useState<string>("default")
+  const [events, setEvents] = useState<MyEvent[]>(sampleEvents)
 
   const zoomStepIndex = ZOOM_STEPS.indexOf(step)
   const canZoomIn = zoomStepIndex > 0
@@ -406,6 +408,79 @@ export default function DemoPage() {
     },
     [],
   )
+
+  // ── Drag & Drop handlers ──
+  const handleEventDrop = useCallback(
+    ({ event, start, end, resourceId }: EventInteractionArgs<MyEvent>) => {
+      setEvents((prev) =>
+        prev.map((e) =>
+          e === event
+            ? { ...e, start, end, ...(resourceId !== undefined ? { resourceId: resourceId as number } : {}) }
+            : e,
+        ),
+      )
+    },
+    [],
+  )
+
+  const handleEventResize = useCallback(
+    ({ event, start, end }: EventInteractionArgs<MyEvent>) => {
+      setEvents((prev) =>
+        prev.map((e) => (e === event ? { ...e, start, end } : e)),
+      )
+    },
+    [],
+  )
+
+  // ── Event Detail Sheet handlers ──
+  const handleEventSave = useCallback(
+    (updatedEvent: MyEvent) => {
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.title === updatedEvent.title && e.start.getTime() === updatedEvent.start.getTime()
+            ? updatedEvent
+            : e,
+        ),
+      )
+    },
+    [],
+  )
+
+  const handleEventDelete = useCallback(
+    (event: MyEvent) => {
+      setEvents((prev) => prev.filter((e) => e !== event))
+    },
+    [],
+  )
+
+  // Custom content rendered inside the event detail sheet
+  const renderEventDetailContent = useCallback((event: MyEvent) => (
+    <div className="space-y-2 border-t border-border pt-3">
+      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Actions</h4>
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            const newEvent: MyEvent = {
+              ...event,
+              title: `${event.title} (copy)`,
+              start: new Date(event.start.getTime() + 86400000),
+              end: new Date(event.end.getTime() + 86400000),
+            }
+            setEvents((prev) => [...prev, newEvent])
+          }}
+          className="text-xs rounded-md border border-input px-3 py-1.5 hover:bg-accent transition-colors"
+        >
+          Duplicate to tomorrow
+        </button>
+        <button
+          onClick={() => navigator.clipboard?.writeText(`${event.title} — ${event.desc || ""}`)}
+          className="text-xs rounded-md border border-input px-3 py-1.5 hover:bg-accent transition-colors"
+        >
+          Copy details
+        </button>
+      </div>
+    </div>
+  ), [])
 
   // Timeslots adjusts with step to keep group height consistent
   const timeslots = step <= 10 ? 6 : step <= 15 ? 4 : step <= 30 ? 2 : 1
@@ -462,14 +537,20 @@ export default function DemoPage() {
         <Tabs.Content value="default" className="flex-1 min-h-0 p-2">
           <Calendar<MyEvent>
             localizer={localizer}
-            events={sampleEvents}
+            events={events}
             defaultView="month"
             selectable
             popup
+            draggable
             step={step}
             timeslots={timeslots}
             onSelectEvent={handleSelectEvent}
             onSelectSlot={handleSelectSlot}
+            onEventDrop={handleEventDrop}
+            onEventResize={handleEventResize}
+            onEventSave={handleEventSave}
+            onEventDelete={handleEventDelete}
+            eventDetailContent={renderEventDetailContent}
             eventPropGetter={eventPropGetter}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
@@ -486,7 +567,7 @@ export default function DemoPage() {
         <Tabs.Content value="resources" className="flex-1 min-h-0 p-2">
           <Calendar<MyEvent>
             localizer={localizer}
-            events={sampleEvents}
+            events={events}
             defaultView="day"
             views={["day", "work_week"] as any}
             resources={resources}
@@ -494,10 +575,16 @@ export default function DemoPage() {
             resourceTitleAccessor="title"
             resourceAccessor={(event: MyEvent) => event.resourceId as any}
             selectable
+            draggable
             step={step}
             timeslots={timeslots}
             onSelectEvent={handleSelectEvent}
             onSelectSlot={handleSelectSlot}
+            onEventDrop={handleEventDrop}
+            onEventResize={handleEventResize}
+            onEventSave={handleEventSave}
+            onEventDelete={handleEventDelete}
+            eventDetailContent={renderEventDetailContent}
             eventPropGetter={eventPropGetter}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
@@ -510,15 +597,17 @@ export default function DemoPage() {
           />
         </Tabs.Content>
 
-        {/* ── Agenda ── */}
-        <Tabs.Content value="agenda" className="flex-1 min-h-0 p-2">
+        {/* ── Agenda ── */}        <Tabs.Content value="agenda" className="flex-1 min-h-0 p-2">
           <Calendar<MyEvent>
             localizer={localizer}
-            events={sampleEvents}
+            events={events}
             defaultView="agenda"
             views={["agenda", "month"] as any}
             length={30}
             onSelectEvent={handleSelectEvent}
+            onEventSave={handleEventSave}
+            onEventDelete={handleEventDelete}
+            eventDetailContent={renderEventDetailContent}
             eventPropGetter={eventPropGetter}
             components={{
               event: EventWithPopover as any,
@@ -531,16 +620,22 @@ export default function DemoPage() {
         <Tabs.Content value="dense" className="flex-1 min-h-0 p-2">
           <Calendar<MyEvent>
             localizer={localizer}
-            events={sampleEvents}
+            events={events}
             defaultView="week"
             views={["week", "work_week"] as any}
             step={step}
             timeslots={timeslots}
             selectable
+            draggable
             min={new Date(y, m, d, 6, 0)}
             max={new Date(y, m, d, 22, 0)}
             onSelectEvent={handleSelectEvent}
             onSelectSlot={handleSelectSlot}
+            onEventDrop={handleEventDrop}
+            onEventResize={handleEventResize}
+            onEventSave={handleEventSave}
+            onEventDelete={handleEventDelete}
+            eventDetailContent={renderEventDetailContent}
             eventPropGetter={eventPropGetter}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}

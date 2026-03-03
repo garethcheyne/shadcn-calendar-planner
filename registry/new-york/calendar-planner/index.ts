@@ -14,6 +14,7 @@ export { AgendaView } from "./views/agenda"
 // Components (for custom compositions)
 export { Toolbar } from "./components/toolbar"
 export { EventCell, TimeGridEvent } from "./components/event-cell"
+export { EventDetailSheet } from "./components/event-detail-sheet"
 export { EventPopup } from "./components/event-popup"
 export { Header, DateHeader, ResourceHeader } from "./components/headers"
 export { TimeGrid } from "./components/time-grid"
@@ -32,6 +33,9 @@ export { dateFnsLocalizer } from "./localizers/date-fns"
 export { navigate, views } from "./constants"
 export * from "./helpers"
 export * as dates from "./lib/dates"
+
+// Drag & Drop
+export { DnDProvider, useDnD } from "./hooks/use-dnd"
 
 // Layout algorithms
 export { getStyledEvents } from "./lib/day-event-layout"
@@ -52,4 +56,9 @@ export type {
   StyledEvent,
   SlotInfo,
   DayLayoutAlgorithm,
+  EventDetailSheetProps,
+} from "./types"
+
+export type {
+  EventInteractionArgs,
 } from "./types"
