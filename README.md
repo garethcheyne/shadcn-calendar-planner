@@ -954,10 +954,10 @@ This component is distributed as a [shadcn/ui registry](https://ui.shadcn.com/do
 
 The registry definition is at [`registry.json`](registry.json) and includes:
 
-- Component files (36 files)
+- 37 files (components, hooks, lib, views, localizer) as a `registry:block`
 - Required npm dependencies: `date-fns`, `@radix-ui/react-popover`, `@radix-ui/react-toggle-group`, `@radix-ui/react-dialog`, `lucide-react`
-- Tailwind theme extensions for calendar tokens
-- Light and dark CSS variable definitions
+- Registry dependency: `sheet` (auto-installed by shadcn)
+- CSS variables with `cssVars.theme` (Tailwind v4), plus light/dark token definitions
 
 ### Building the Registry
 
