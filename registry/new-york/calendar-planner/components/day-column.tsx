@@ -160,11 +160,12 @@ export function DayColumn<TEvent extends CalendarEvent = CalendarEvent>({
 
   // ── DnD: detect when a dragged event hovers over this column ──
   const { dragState, updatePreview, endDrag } = useDnD<TEvent>()
-  const isDragTarget = dragState != null
+  const [isHoveredDragTarget, setIsHoveredDragTarget] = React.useState(false)
 
   const handleColumnPointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!dragState || dragState.action !== "move") return
+      setIsHoveredDragTarget(true)
       // Only respond if this column doesn't already own the event (cross-column drag)
       const bounds = columnRef.current?.getBoundingClientRect()
       if (!bounds) return
@@ -190,6 +191,7 @@ export function DayColumn<TEvent extends CalendarEvent = CalendarEvent>({
     (_e: React.PointerEvent) => {
       if (!dragState) return
       endDrag()
+      setIsHoveredDragTarget(false)
     },
     [dragState, endDrag],
   )
@@ -199,13 +201,14 @@ export function DayColumn<TEvent extends CalendarEvent = CalendarEvent>({
       ref={columnRef}
       className={cn(
         "relative flex-1 border-l border-border/50 first:border-l-0",
-        isDragTarget && "bg-primary/5",
+        isHoveredDragTarget && "bg-primary/5",
         dayClassName,
       )}
       style={dayStyle}
       onClick={handleSlotClick}
       onPointerMove={handleColumnPointerMove}
       onPointerUp={handleColumnPointerUp}
+      onPointerLeave={() => setIsHoveredDragTarget(false)}
     >
       {/* Time slot background grid */}
       {groups.map((group, idx) => (

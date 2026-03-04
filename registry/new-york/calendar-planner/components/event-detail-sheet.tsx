@@ -71,6 +71,7 @@ export function EventDetailSheet<TEvent extends CalendarEvent = CalendarEvent>({
   const [editStartTime, setEditStartTime] = useState(formatInputTime(start))
   const [editEndTime, setEditEndTime] = useState(formatInputTime(end))
   const [editAllDay, setEditAllDay] = useState(isAllDay)
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   // Reset edit state when event changes
   useEffect(() => {
@@ -85,6 +86,7 @@ export function EventDetailSheet<TEvent extends CalendarEvent = CalendarEvent>({
     setEditEndTime(formatInputTime(end))
     setEditAllDay(isAllDay)
     setIsEditing(false)
+    setValidationError(null)
   }, [event, title, start, end, isAllDay])
 
   const handleSave = useCallback(() => {
@@ -98,6 +100,13 @@ export function EventDetailSheet<TEvent extends CalendarEvent = CalendarEvent>({
     const newStart = new Date(yr, mo - 1, dy, editAllDay ? 0 : sh, editAllDay ? 0 : sm)
     const newEnd = new Date(yr, mo - 1, dy, editAllDay ? 23 : eh, editAllDay ? 59 : em)
 
+    // Validate: end must not be before start
+    if (!editAllDay && newEnd <= newStart) {
+      setValidationError("End time must be after start time.")
+      return
+    }
+    setValidationError(null)
+
     const updated = {
       ...event,
       title: editTitle,
@@ -108,7 +117,7 @@ export function EventDetailSheet<TEvent extends CalendarEvent = CalendarEvent>({
       allDay: editAllDay,
     } as TEvent
 
-    onSave(updated)
+    onSave(updated, event)
     setIsEditing(false)
   }, [event, editTitle, editDescription, editDate, editStartTime, editEndTime, editAllDay, onSave])
 
@@ -159,10 +168,18 @@ export function EventDetailSheet<TEvent extends CalendarEvent = CalendarEvent>({
           <SheetDescription>
             {isEditing ? (
               <div className="space-y-3 mt-1">
+                {/* Validation error */}
+                {validationError && (
+                  <p className="text-sm font-medium text-destructive" role="alert">
+                    {validationError}
+                  </p>
+                )}
+
                 {/* Date */}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Date</label>
+                  <label htmlFor="sheet-edit-date" className="text-xs font-medium text-muted-foreground block mb-1">Date</label>
                   <input
+                    id="sheet-edit-date"
                     type="date"
                     value={editDate}
                     onChange={(e) => setEditDate(e.target.value)}
@@ -174,8 +191,9 @@ export function EventDetailSheet<TEvent extends CalendarEvent = CalendarEvent>({
                 </div>
 
                 {/* All-day toggle */}
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label htmlFor="sheet-edit-allday" className="flex items-center gap-2 cursor-pointer">
                   <input
+                    id="sheet-edit-allday"
                     type="checkbox"
                     checked={editAllDay}
                     onChange={(e) => setEditAllDay(e.target.checked)}
@@ -188,8 +206,9 @@ export function EventDetailSheet<TEvent extends CalendarEvent = CalendarEvent>({
                 {!editAllDay && (
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground block mb-1">Start</label>
+                      <label htmlFor="sheet-edit-start-time" className="text-xs font-medium text-muted-foreground block mb-1">Start</label>
                       <input
+                        id="sheet-edit-start-time"
                         type="time"
                         value={editStartTime}
                         onChange={(e) => setEditStartTime(e.target.value)}
@@ -200,8 +219,9 @@ export function EventDetailSheet<TEvent extends CalendarEvent = CalendarEvent>({
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground block mb-1">End</label>
+                      <label htmlFor="sheet-edit-end-time" className="text-xs font-medium text-muted-foreground block mb-1">End</label>
                       <input
+                        id="sheet-edit-end-time"
                         type="time"
                         value={editEndTime}
                         onChange={(e) => setEditEndTime(e.target.value)}
@@ -216,8 +236,9 @@ export function EventDetailSheet<TEvent extends CalendarEvent = CalendarEvent>({
 
                 {/* Description */}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Description</label>
+                  <label htmlFor="sheet-edit-description" className="text-xs font-medium text-muted-foreground block mb-1">Description</label>
                   <textarea
+                    id="sheet-edit-description"
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
                     rows={3}

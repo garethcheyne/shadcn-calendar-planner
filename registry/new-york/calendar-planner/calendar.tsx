@@ -119,10 +119,13 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
 
   // Drag & Drop
   draggable = false,
+  draggableAccessor,
+  resizableAccessor,
   onEventDrop,
   onEventResize,
   onDragStart,
   onDragEnd,
+  dragFromOutsideItem: _dragFromOutsideItem,
 
   // Event Detail Sheet
   onEventSave,
@@ -141,6 +144,20 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
 
   // Toolbar
   toolbar = true,
+
+  // Declared but not yet implemented (destructured to keep out of DOM)
+  formats: _formats,
+  selected: _selected,
+  enableAutoScroll: _enableAutoScroll,
+  showMultiDayTimes: _showMultiDayTimes,
+  allDayMaxRows: _allDayMaxRows,
+  showAllEvents: _showAllEvents,
+  doShowMoreDrillDown: _doShowMoreDrillDown,
+  drilldownView: _drilldownView,
+  getDrilldownView: _getDrilldownView,
+  eventIdAccessor: _eventIdAccessor,
+  resourceGroupingLayout: _resourceGroupingLayout,
+  culture: _culture,
 
   // Classname
   className,
@@ -287,8 +304,8 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
 
   // Sheet save handler
   const handleSheetSave = useCallback(
-    (updatedEvent: TEvent) => {
-      onEventSave?.(updatedEvent)
+    (updatedEvent: TEvent, originalEvent: TEvent) => {
+      onEventSave?.(updatedEvent, originalEvent)
       setSheetEvent(null)
     },
     [onEventSave],
@@ -358,6 +375,8 @@ export function Calendar<TEvent extends CalendarEvent = CalendarEvent>({
   return (
     <DnDProvider
       enabled={draggable}
+      draggableAccessor={draggableAccessor}
+      resizableAccessor={resizableAccessor}
       onEventDrop={onEventDrop}
       onEventResize={onEventResize}
       onDragStart={onDragStart}

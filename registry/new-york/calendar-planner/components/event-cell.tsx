@@ -60,7 +60,8 @@ export function EventCell<TEvent extends CalendarEvent = CalendarEvent>({
     end,
     isSelectedEvent,
   )
-  const { enabled: dndEnabled, dragState, beginDrag } = useDnD<TEvent>()
+  const { enabled: dndEnabled, dragState, beginDrag, isDraggable } = useDnD<TEvent>()
+  const canDrag = dndEnabled && isDraggable(event)
   const isDragging = dragState?.event === event
 
   const EventComponent = components.event
@@ -69,22 +70,22 @@ export function EventCell<TEvent extends CalendarEvent = CalendarEvent>({
   const pointerOrigin = useRef<{ x: number; y: number } | null>(null)
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!dndEnabled) return
+      if (!canDrag) return
       pointerOrigin.current = { x: e.clientX, y: e.clientY }
     },
-    [dndEnabled],
+    [canDrag],
   )
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!dndEnabled || !pointerOrigin.current) return
+      if (!canDrag || !pointerOrigin.current) return
       const dx = Math.abs(e.clientX - pointerOrigin.current.x)
       const dy = Math.abs(e.clientY - pointerOrigin.current.y)
       if (dx + dy > 5) {
-        beginDrag(event, "move")
+        beginDrag(event, "move", undefined, start, end)
         pointerOrigin.current = null
       }
     },
-    [dndEnabled, beginDrag, event],
+    [canDrag, beginDrag, event],
   )
   const handlePointerUp = useCallback(() => {
     pointerOrigin.current = null
@@ -117,7 +118,7 @@ export function EventCell<TEvent extends CalendarEvent = CalendarEvent>({
         isSelectedEvent && "ring-2 ring-ring ring-offset-1",
         continuesPrior && "rounded-l-none",
         continuesAfter && "rounded-r-none",
-        dndEnabled && "cursor-grab active:cursor-grabbing",
+        canDrag && "cursor-grab active:cursor-grabbing",
         isDragging && "opacity-50 ring-2 ring-primary",
         userClassName,
       )}
@@ -207,7 +208,9 @@ export function TimeGridEvent<TEvent extends CalendarEvent = CalendarEvent>({
     isSelectedEvent,
   )
 
-  const { enabled: dndEnabled, dragState, beginDrag, updatePreview, endDrag, cancelDrag } = useDnD<TEvent>()
+  const { enabled: dndEnabled, dragState, beginDrag, updatePreview, endDrag, cancelDrag, isDraggable, isResizable } = useDnD<TEvent>()
+  const canDrag = dndEnabled && isDraggable(event)
+  const canResize = dndEnabled && isResizable(event)
   const isDragging = dragState?.event === event
   const eventRef = useRef<HTMLDivElement>(null)
   const dragOriginRef = useRef<{ y: number; action: "move" | "resize"; startTop: number; startHeight: number } | null>(null)
@@ -217,13 +220,13 @@ export function TimeGridEvent<TEvent extends CalendarEvent = CalendarEvent>({
   // ── Drag-to-move: pointer handlers on the event body ──
   const handleMovePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!dndEnabled || isBackgroundEvent) return
+      if (!canDrag || isBackgroundEvent) return
       // Ignore if clicking the resize handle
       if ((e.target as HTMLElement).dataset.resizeHandle) return
       e.stopPropagation()
       dragOriginRef.current = { y: e.clientY, action: "move", startTop: style.top, startHeight: style.height }
     },
-    [dndEnabled, isBackgroundEvent, style.top, style.height],
+    [canDrag, isBackgroundEvent, style.top, style.height],
   )
 
   const handleMovePointerMove = useCallback(
@@ -233,7 +236,7 @@ export function TimeGridEvent<TEvent extends CalendarEvent = CalendarEvent>({
       if (dy < 5 && !isDragging) return // deadzone
 
       if (!isDragging) {
-        beginDrag(event, "move")
+        beginDrag(event, "move", undefined, start, end)
         ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
       }
 
@@ -268,14 +271,14 @@ export function TimeGridEvent<TEvent extends CalendarEvent = CalendarEvent>({
   // ── Drag-to-resize: pointer handlers on the bottom handle ──
   const handleResizePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!dndEnabled || isBackgroundEvent) return
+      if (!canResize || isBackgroundEvent) return
       e.stopPropagation()
       e.preventDefault()
       dragOriginRef.current = { y: e.clientY, action: "resize", startTop: style.top, startHeight: style.height }
-      beginDrag(event, "resize", "DOWN")
+      beginDrag(event, "resize", "DOWN", start, end)
       ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
     },
-    [dndEnabled, isBackgroundEvent, style.top, style.height, beginDrag, event],
+    [canResize, isBackgroundEvent, style.top, style.height, beginDrag, event],
   )
 
   const handleResizePointerMove = useCallback(
@@ -377,7 +380,7 @@ export function TimeGridEvent<TEvent extends CalendarEvent = CalendarEvent>({
         isSelectedEvent && "ring-2 ring-ring z-20",
         continuesPrior && "rounded-t-none border-t-0",
         continuesAfter && "rounded-b-none border-b-0",
-        dndEnabled && !isBackgroundEvent && "cursor-grab active:cursor-grabbing",
+        canDrag && !isBackgroundEvent && "cursor-grab active:cursor-grabbing",
         isDragging && "opacity-70 ring-2 ring-primary z-30 shadow-lg",
         userClassName,
       )}
@@ -400,7 +403,7 @@ export function TimeGridEvent<TEvent extends CalendarEvent = CalendarEvent>({
       )}
 
       {/* ── Resize handle (bottom edge) ── */}
-      {dndEnabled && !isBackgroundEvent && !continuesAfter && (
+      {canResize && !isBackgroundEvent && !continuesAfter && (
         <div
           data-resize-handle="true"
           onPointerDown={handleResizePointerDown}

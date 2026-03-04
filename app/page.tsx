@@ -434,13 +434,9 @@ export default function DemoPage() {
 
   // ── Event Detail Sheet handlers ──
   const handleEventSave = useCallback(
-    (updatedEvent: MyEvent) => {
+    (updatedEvent: MyEvent, originalEvent: MyEvent) => {
       setEvents((prev) =>
-        prev.map((e) =>
-          e.title === updatedEvent.title && e.start.getTime() === updatedEvent.start.getTime()
-            ? updatedEvent
-            : e,
-        ),
+        prev.map((e) => (e === originalEvent ? updatedEvent : e)),
       )
     },
     [],

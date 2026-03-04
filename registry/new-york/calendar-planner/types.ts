@@ -161,8 +161,8 @@ export interface EventDetailSheetProps<TEvent = CalendarEvent> {
   isAllDay: boolean
   /** The localizer for formatting dates/times */
   localizer: DateLocalizer
-  /** Called when the user saves edits to the event */
-  onSave?: (updatedEvent: TEvent) => void
+  /** Called when the user saves edits to the event. Receives the updated event and the original event. */
+  onSave?: (updatedEvent: TEvent, originalEvent: TEvent) => void
   /** Called when the user deletes the event */
   onDelete?: (event: TEvent) => void
   /** Side the sheet slides in from */
@@ -574,8 +574,8 @@ export interface CalendarProps<TEvent extends CalendarEvent = CalendarEvent> ext
 
   // ── Event Detail Sheet ────────────────────────────────────────────
 
-  /** Called when the user saves an event from the detail sheet */
-  onEventSave?: (updatedEvent: TEvent) => void
+  /** Called when the user saves an event from the detail sheet. Receives updated and original event. */
+  onEventSave?: (updatedEvent: TEvent, originalEvent: TEvent) => void
 
   /** Called when the user deletes an event from the detail sheet */
   onEventDelete?: (event: TEvent) => void

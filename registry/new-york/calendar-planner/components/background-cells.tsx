@@ -130,8 +130,8 @@ export function BackgroundCells<TEvent extends CalendarEvent = CalendarEvent>({
       setDropTarget(idx)
       const slot = range[idx]
       const event = dragState.event
-      const evtStart = (event as any).start as Date | undefined
-      const evtEnd = (event as any).end as Date | undefined
+      const evtStart = dragState.resolvedStart ?? (event as Record<string, unknown>).start as Date | undefined
+      const evtEnd = dragState.resolvedEnd ?? (event as Record<string, unknown>).end as Date | undefined
       if (!evtStart || !evtEnd) return
       const duration = evtEnd.getTime() - evtStart.getTime()
       // Preserve time-of-day, move to new date

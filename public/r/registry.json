@@ -1,40 +1,45 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "calendar-planner",
-  "homepage": "https://github.com/your-org/react-calendar-planner",
+  "homepage": "https://github.com/garethcheyne/shadcn-calendar-planner",
   "items": [
     {
       "name": "calendar-planner",
-      "type": "registry:component",
+      "type": "registry:block",
       "title": "Calendar Planner",
-      "description": "A full-featured calendar component with month, week, day, work-week, and agenda views. Built with Radix UI primitives and Tailwind CSS.",
+      "description": "A full-featured calendar component with month, week, day, work-week, and agenda views. Includes drag-and-drop event moving/resizing, event detail sheet panel, resource grouping, and zoom controls. Built with Radix UI primitives, Tailwind CSS, and date-fns.",
+      "author": "garethcheyne",
       "dependencies": [
         "date-fns",
         "@radix-ui/react-popover",
         "@radix-ui/react-toggle-group",
+        "@radix-ui/react-dialog",
         "lucide-react"
       ],
-      "registryDependencies": [],
+      "registryDependencies": [
+        "sheet"
+      ],
       "files": [
         { "path": "registry/new-york/calendar-planner/index.ts", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/calendar.tsx", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/calendar-context.tsx", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/types.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/constants.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/helpers.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/localizer.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/localizers/date-fns.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/lib/dates.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/lib/event-levels.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/lib/date-slot-metrics.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/lib/time-slot-metrics.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/lib/day-event-layout.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/lib/resources.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/lib/selection.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/lib/layout-algorithms/overlap.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/lib/layout-algorithms/no-overlap.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/hooks/use-click-outside.ts", "type": "registry:component" },
-        { "path": "registry/new-york/calendar-planner/hooks/use-controllable-state.ts", "type": "registry:component" },
+        { "path": "registry/new-york/calendar-planner/types.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/constants.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/helpers.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/localizer.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/localizers/date-fns.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/lib/dates.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/lib/event-levels.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/lib/date-slot-metrics.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/lib/time-slot-metrics.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/lib/day-event-layout.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/lib/resources.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/lib/selection.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/lib/layout-algorithms/overlap.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/lib/layout-algorithms/no-overlap.ts", "type": "registry:lib" },
+        { "path": "registry/new-york/calendar-planner/hooks/use-click-outside.ts", "type": "registry:hook" },
+        { "path": "registry/new-york/calendar-planner/hooks/use-controllable-state.ts", "type": "registry:hook" },
+        { "path": "registry/new-york/calendar-planner/hooks/use-dnd.ts", "type": "registry:hook" },
         { "path": "registry/new-york/calendar-planner/components/toolbar.tsx", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/components/event-cell.tsx", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/components/event-popup.tsx", "type": "registry:component" },
@@ -46,46 +51,40 @@
         { "path": "registry/new-york/calendar-planner/components/time-grid.tsx", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/components/time-grid-header.tsx", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/components/time-slots.tsx", "type": "registry:component" },
+        { "path": "registry/new-york/calendar-planner/components/event-detail-sheet.tsx", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/views/month.tsx", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/views/week.tsx", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/views/day.tsx", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/views/work-week.tsx", "type": "registry:component" },
         { "path": "registry/new-york/calendar-planner/views/agenda.tsx", "type": "registry:component" }
       ],
-      "tailwind": {
-        "config": {
-          "theme": {
-            "extend": {
-              "colors": {
-                "calendar-event": "var(--calendar-event)",
-                "calendar-event-foreground": "var(--calendar-event-foreground)",
-                "calendar-today": "var(--calendar-today)",
-                "calendar-off-range": "var(--calendar-off-range)",
-                "calendar-selected": "var(--calendar-selected)",
-                "calendar-current-time": "var(--calendar-current-time)"
-              }
-            }
-          }
-        }
-      },
       "cssVars": {
+        "theme": {
+          "color-calendar-event": "var(--calendar-event)",
+          "color-calendar-event-foreground": "var(--calendar-event-foreground)",
+          "color-calendar-today": "var(--calendar-today)",
+          "color-calendar-off-range": "var(--calendar-off-range)",
+          "color-calendar-selected": "var(--calendar-selected)",
+          "color-calendar-current-time": "var(--calendar-current-time)"
+        },
         "light": {
-          "--calendar-event": "221.2 83.2% 53.3%",
-          "--calendar-event-foreground": "210 40% 98%",
-          "--calendar-today": "210 40% 96.1%",
-          "--calendar-off-range": "210 40% 98%",
-          "--calendar-selected": "221.2 83.2% 53.3%",
-          "--calendar-current-time": "0 84.2% 60.2%"
+          "calendar-event": "oklch(0.546 0.245 262.881)",
+          "calendar-event-foreground": "oklch(0.985 0 0)",
+          "calendar-today": "oklch(0.95 0.02 250)",
+          "calendar-off-range": "oklch(0.7 0.01 286)",
+          "calendar-current-time": "oklch(0.577 0.245 27.325)",
+          "calendar-selected": "oklch(0.9 0.03 250)"
         },
         "dark": {
-          "--calendar-event": "217.2 91.2% 59.8%",
-          "--calendar-event-foreground": "222.2 84% 4.9%",
-          "--calendar-today": "217.2 32.6% 17.5%",
-          "--calendar-off-range": "222.2 84% 4.9%",
-          "--calendar-selected": "217.2 91.2% 59.8%",
-          "--calendar-current-time": "0 72.2% 50.6%"
+          "calendar-event": "oklch(0.707 0.165 254.624)",
+          "calendar-event-foreground": "oklch(0.985 0 0)",
+          "calendar-today": "oklch(0.25 0.02 250)",
+          "calendar-off-range": "oklch(0.4 0.01 286)",
+          "calendar-current-time": "oklch(0.637 0.237 25.331)",
+          "calendar-selected": "oklch(0.3 0.03 250)"
         }
-      }
+      },
+      "docs": "After installing, create a localizer and pass it to the Calendar component. See https://github.com/garethcheyne/shadcn-calendar-planner for full documentation."
     }
   ]
 }
